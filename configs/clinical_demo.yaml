@@ -1,0 +1,19 @@
+{
+  "seed": 42,
+  "experiment_name": "clinical_demo",
+  "data": {
+    "hf_dataset_id": "none",
+    "target_column": "target"
+  },
+  "model": {
+    "type": "random_forest",
+    "n_estimators": 300,
+    "max_depth": null
+  },
+  "outputs": {
+    "run_dir": "runs/clinical_demo",
+    "results_json": "runs/clinical_demo/results.json",
+    "latex_table": "paper/results.tex",
+    "fig_dir": "paper/figures"
+  }
+}
