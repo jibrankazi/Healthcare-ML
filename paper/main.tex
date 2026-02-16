@@ -7,21 +7,67 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-We present a reproducible, API-driven clinical risk pipeline with AUROC/AUPRC evaluation and calibration analysis.
+We present a reproducible, API-driven clinical risk pipeline that trains a Random Forest
+classifier on tabular healthcare data and evaluates it using AUROC, AUPRC, and calibration
+analysis.  The model achieves near-perfect discrimination (AUROC $\approx 0.999$) on the
+Wisconsin Breast Cancer dataset, but calibration analysis reveals that the predicted
+probabilities are poorly calibrated---motivating future work on calibration-aware ensembles
+for clinical deployment.
 \end{abstract}
+
 \section{Data \& Method}
-We load a public medical dataset via API (fallback to scikit-learn breast cancer), train a calibrated classifier, and evaluate.
+We use the Wisconsin Breast Cancer dataset (569 patients, 30 continuous features derived
+from fine needle aspirate images of breast masses).  The binary target indicates whether a
+tumor is malignant (class~0) or benign (class~1).  Data is split 80/20 with stratification
+(seed 123).
+
+The pipeline applies \texttt{StandardScaler} normalization followed by a Random Forest
+classifier (300 trees, unlimited depth, seed 42).  No hyperparameter tuning is performed;
+this serves as a reproducible baseline.
+
 \section{Results}
 \input{results.tex}
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.45\linewidth]{figures/roc.png}
 \includegraphics[width=0.45\linewidth]{figures/pr.png}
-\caption{ROC and PR curves.}
+\caption{ROC and PR curves.  Both curves hug the top-left and top-right corners
+respectively, indicating near-perfect discrimination between malignant and benign tumors.}
 \end{figure}
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\linewidth]{figures/calibration.png}
-\caption{Calibration curve.}
+\caption{Calibration curve.  The S-shaped deviation from the diagonal shows that the
+Random Forest is overconfident: it pushes predicted probabilities toward 0 and 1 rather
+than producing well-calibrated risk estimates.}
 \end{figure}
+
+\section{Discussion}
+The model achieves AUROC of 0.999 and AUPRC of 0.999, demonstrating that a standard
+Random Forest can nearly perfectly separate malignant from benign tumors on this dataset.
+The ROC curve reaches $\sim$97\% true positive rate at essentially 0\% false positive rate,
+and precision remains at 1.0 across nearly the full recall range.
+
+However, the calibration plot tells a different story.  The predicted probabilities exhibit
+a steep S-shaped curve rather than following the ideal diagonal.  For predictions around
+0.4, the actual fraction of positive cases is near zero, while by 0.5 it jumps to
+$\sim$60\%.  This means a clinician could not interpret a raw prediction of 0.7 as a
+``70\% chance of malignancy''---the model's probability outputs are not trustworthy for
+risk communication, even though its ranking ability is excellent.
+
+This is a well-documented property of Random Forests: because predictions are averages of
+tree votes, they tend to cluster away from the extremes but still produce overconfident
+outputs.  Addressing this limitation through probability calibration (e.g.,
+\texttt{CalibratedClassifierCV} with isotonic or Platt scaling) is the natural next step
+and a core direction of this research program.
+
+\section{Conclusion}
+This pipeline demonstrates that high discrimination alone is insufficient for clinical
+risk models.  While the Random Forest baseline achieves near-perfect AUROC/AUPRC, the
+calibration analysis reveals that predicted probabilities require post-hoc correction
+before they can be used for patient-facing risk communication.  Future work will
+integrate calibration-aware training and evaluate on external clinical datasets.
+
 \end{document}

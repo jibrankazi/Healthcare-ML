@@ -80,6 +80,21 @@ healthcare-ml-pipeline/
 └── README.md
 ```
 
+## Results & Analysis
+
+The current demo runs on the **Wisconsin Breast Cancer dataset** (569 patients, 30 features from cell nuclei images, binary malignant/benign target).
+
+| Metric | Value | Meaning |
+|--------|-------|---------|
+| AUROC | 0.999 | Near-perfect ranking of malignant vs. benign |
+| AUPRC | 0.999 | High precision across all recall thresholds |
+
+**ROC curve** -- achieves ~97% true positive rate at essentially 0% false positive rate. The model correctly identifies nearly all malignant tumors without mislabeling benign ones.
+
+**PR curve** -- precision stays at 1.0 across nearly the full recall range. When the model predicts malignant, it is almost always correct.
+
+**Calibration curve** -- the most clinically relevant finding. The S-shaped deviation from the diagonal shows the Random Forest is **overconfident**: it pushes predicted probabilities toward 0 or 1 rather than producing calibrated risk estimates. A raw prediction of 0.7 does not mean "70% chance of malignancy." This motivates the next phase of work: integrating probability calibration (isotonic/Platt scaling via `CalibratedClassifierCV`) so predicted probabilities can be trusted for patient-facing risk communication.
+
 ## Configuration
 
 All experiment settings live in `configs/clinical_demo.yaml`:
