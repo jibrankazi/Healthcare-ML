@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "hchealth"
+version = "0.1.0"
+description = "Clinical risk modeling pipeline with AUROC/AUPRC evaluation"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "Jibran Kazi", email = "jibrankazi@gmail.com"}]
+dependencies = [
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "matplotlib",
+    "pyyaml",
+    "datasets>=2.14.0",
+    "joblib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+hchealth-train = "hchealth.train:main"
+hchealth-eval = "hchealth.evaluate:main"
+hchealth-latex = "hchealth.to_latex:main"
+hchealth-run = "hchealth.run_pipeline:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
