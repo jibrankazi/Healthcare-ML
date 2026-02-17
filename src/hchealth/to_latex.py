@@ -1,3 +1,5 @@
+"""Generate a LaTeX comparison table from multi-model results.json."""
+
 import argparse
 import json
 from pathlib import Path
@@ -19,16 +21,31 @@ def main():
     out_path = Path(cfg["outputs"]["latex_table"])
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    table = (
-        "%% Auto-generated -- do not edit by hand\n"
-        "\\begin{tabular}{l r}\n"
-        "\\hline\n"
-        "Metric & Value \\\\ \\hline\n"
-        f"AUROC & {res['AUROC']:.4f} \\\\\n"
-        f"AUPRC & {res['AUPRC']:.4f} \\\\ \\hline\n"
-        "\\end{tabular}\n"
-    )
+    models = res["models"]
 
+    lines = [
+        "%% Auto-generated -- do not edit by hand",
+        "\\begin{tabular}{l c c c}",
+        "\\hline",
+        "Model & AUROC [95\\% CI] & AUPRC [95\\% CI] & Brier \\\\ \\hline",
+    ]
+
+    for name, m in models.items():
+        auroc = m["AUROC"]
+        auroc_ci = m["AUROC_CI"]
+        auprc = m["AUPRC"]
+        auprc_ci = m["AUPRC_CI"]
+        brier = m["Brier"]
+        lines.append(
+            f"{name} & {auroc:.4f} [{auroc_ci[0]:.3f}, {auroc_ci[1]:.3f}] "
+            f"& {auprc:.4f} [{auprc_ci[0]:.3f}, {auprc_ci[1]:.3f}] "
+            f"& {brier:.4f} \\\\"
+        )
+
+    lines.append("\\hline")
+    lines.append("\\end{tabular}")
+
+    table = "\n".join(lines) + "\n"
     out_path.write_text(table, encoding="utf-8")
     print("Wrote LaTeX table to", out_path)
 

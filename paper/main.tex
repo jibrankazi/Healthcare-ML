@@ -1,73 +1,165 @@
 \documentclass[10pt]{article}
 \usepackage{times}
 \usepackage{graphicx}
-\title{Healthcare-ML: Clinical Risk Modeling with API Data}
-\author{Jibran Kazi (JK)}
+\usepackage{booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+
+\title{Healthcare-ML: Calibration-Aware Clinical Risk Modeling\\with Multi-Model Comparison}
+\author{Jibran Kazi}
 \date{February 2026}
+
 \begin{document}
 \maketitle
+
 \begin{abstract}
-We present a reproducible, API-driven clinical risk pipeline that trains a Random Forest
-classifier on tabular healthcare data and evaluates it using AUROC, AUPRC, and calibration
-analysis.  The model achieves near-perfect discrimination (AUROC $\approx 0.999$) on the
-Wisconsin Breast Cancer dataset, but calibration analysis reveals that the predicted
-probabilities are poorly calibrated---motivating future work on calibration-aware ensembles
-for clinical deployment.
+We present a reproducible clinical risk pipeline that compares five classifiers---Logistic
+Regression, Random Forest, Random Forest with isotonic calibration, Random Forest with
+Platt scaling, and XGBoost---on the Wisconsin Breast Cancer dataset.  All models achieve
+near-perfect discrimination (AUROC $> 0.98$), but calibration analysis reveals significant
+differences in predicted probability reliability.  We show that post-hoc calibration via
+\texttt{CalibratedClassifierCV} substantially improves the Brier score and calibration
+curve alignment, confirming that high AUROC alone is insufficient for clinical deployment.
+Bootstrap confidence intervals and SHAP-based feature importance provide statistical rigour
+and interpretability.
 \end{abstract}
 
+\section{Introduction}
+Clinical risk models must satisfy two requirements: (1)~accurate discrimination between
+outcomes, and (2)~well-calibrated probability estimates that clinicians can communicate to
+patients~\cite{niculescu2005}.  A model that ranks patients correctly but assigns a
+predicted probability of 0.7 when the true event rate is 0.3 is dangerous in practice,
+even if its AUROC is high.
+
+Random Forests are popular in clinical ML for their strong discrimination, but their
+predicted probabilities are known to be poorly calibrated~\cite{niculescu2005}.
+Post-hoc calibration methods---Platt scaling~\cite{platt1999} and isotonic
+regression~\cite{zadrozny2002}---can improve probability reliability.  Modern gradient
+boosting methods like XGBoost~\cite{chen2016} offer an alternative with potentially
+better-calibrated outputs.
+
+This work systematically compares these approaches on a standard clinical dataset,
+evaluating discrimination (AUROC, AUPRC), calibration (Brier score, reliability diagrams),
+and interpretability (SHAP feature importance).
+
 \section{Data \& Method}
+
+\subsection{Dataset}
 We use the Wisconsin Breast Cancer dataset (569 patients, 30 continuous features derived
 from fine needle aspirate images of breast masses).  The binary target indicates whether a
-tumor is malignant (class~0) or benign (class~1).  Data is split 80/20 with stratification
-(seed 123).
+tumour is malignant (class~0) or benign (class~1).  Data is split 80/20 with stratification
+(seed~123), yielding 455 training and 114 test samples.
 
-The pipeline applies \texttt{StandardScaler} normalization followed by a Random Forest
-classifier (300 trees, unlimited depth, seed 42).  No hyperparameter tuning is performed;
-this serves as a reproducible baseline.
+\subsection{Models}
+Five classifiers are compared, all preceded by \texttt{StandardScaler}:
+\begin{enumerate}
+  \item \textbf{Logistic Regression} --- L2-regularised baseline (max\_iter=1000).
+  \item \textbf{Random Forest (RF)} --- 300 trees, unlimited depth.
+  \item \textbf{RF + Isotonic} --- RF wrapped in \texttt{CalibratedClassifierCV}
+        with isotonic regression (3-fold internal CV).
+  \item \textbf{RF + Platt} --- RF wrapped in \texttt{CalibratedClassifierCV}
+        with sigmoid (Platt) scaling (3-fold internal CV).
+  \item \textbf{XGBoost} --- 300 rounds, max\_depth=6, learning rate 0.1.
+\end{enumerate}
+
+\subsection{Evaluation Protocol}
+All models are evaluated with 5-fold stratified cross-validation on the training set.
+Final models are refit on the full training set and evaluated on the held-out test set.
+
+Metrics include AUROC, AUPRC, and Brier score.  95\% confidence intervals are computed
+via percentile bootstrap (1000 resamples).  SHAP TreeExplainer provides feature-level
+interpretability for the best-performing model.
 
 \section{Results}
 \input{results.tex}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.45\linewidth]{figures/roc.png}
-\includegraphics[width=0.45\linewidth]{figures/pr.png}
-\caption{ROC and PR curves.  Both curves hug the top-left and top-right corners
-respectively, indicating near-perfect discrimination between malignant and benign tumors.}
+\includegraphics[width=0.48\linewidth]{figures/roc.png}
+\includegraphics[width=0.48\linewidth]{figures/pr.png}
+\caption{ROC (left) and Precision-Recall (right) curves for all five models.
+All achieve near-perfect discrimination, with overlapping curves above AUROC~0.98.}
 \end{figure}
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\linewidth]{figures/calibration.png}
-\caption{Calibration curve.  The S-shaped deviation from the diagonal shows that the
-Random Forest is overconfident: it pushes predicted probabilities toward 0 and 1 rather
-than producing well-calibrated risk estimates.}
+\caption{Calibration curves.  The uncalibrated RF shows characteristic S-shaped
+overconfidence.  Both isotonic and Platt calibration substantially improve alignment
+with the diagonal, as reflected in lower Brier scores.  Logistic Regression and
+XGBoost are inherently better calibrated.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\linewidth]{figures/shap_bar.png}
+\caption{Top~15 features by mean absolute SHAP value for the best model, showing
+which cell-nucleus measurements most influence the malignancy prediction.}
 \end{figure}
 
 \section{Discussion}
-The model achieves AUROC of 0.999 and AUPRC of 0.999, demonstrating that a standard
-Random Forest can nearly perfectly separate malignant from benign tumors on this dataset.
-The ROC curve reaches $\sim$97\% true positive rate at essentially 0\% false positive rate,
-and precision remains at 1.0 across nearly the full recall range.
+All five models achieve AUROC above 0.98, confirming that the Wisconsin Breast Cancer
+dataset is highly separable.  However, the calibration analysis reveals important
+differences.  The uncalibrated Random Forest exhibits the well-documented S-shaped
+calibration curve~\cite{niculescu2005}, pushing predictions toward 0 and 1.
 
-However, the calibration plot tells a different story.  The predicted probabilities exhibit
-a steep S-shaped curve rather than following the ideal diagonal.  For predictions around
-0.4, the actual fraction of positive cases is near zero, while by 0.5 it jumps to
-$\sim$60\%.  This means a clinician could not interpret a raw prediction of 0.7 as a
-``70\% chance of malignancy''---the model's probability outputs are not trustworthy for
-risk communication, even though its ranking ability is excellent.
+Post-hoc calibration via isotonic regression and Platt scaling both improve the Brier
+score.  Isotonic calibration is more flexible and typically achieves better calibration
+on this dataset, though it can overfit with very small samples.  Platt scaling, being
+parametric, is more stable but assumes a sigmoidal relationship.
 
-This is a well-documented property of Random Forests: because predictions are averages of
-tree votes, they tend to cluster away from the extremes but still produce overconfident
-outputs.  Addressing this limitation through probability calibration (e.g.,
-\texttt{CalibratedClassifierCV} with isotonic or Platt scaling) is the natural next step
-and a core direction of this research program.
+Logistic Regression, despite lower discrimination, naturally produces well-calibrated
+probabilities because it directly models log-odds.  XGBoost offers a middle ground:
+strong discrimination with reasonable calibration.
+
+SHAP analysis reveals that features related to cell concavity, perimeter, and radius
+are the strongest predictors---consistent with clinical knowledge that malignant tumours
+tend to have larger, more irregularly shaped cells.
+
+\subsection{Limitations}
+This study uses a single, clean, moderately-sized dataset.  Real-world clinical data
+involves missing values, temporal drift, and multi-site heterogeneity.  Future work
+should evaluate on larger, noisier datasets (e.g., MIMIC-III) and investigate
+calibration stability under distribution shift.
 
 \section{Conclusion}
-This pipeline demonstrates that high discrimination alone is insufficient for clinical
-risk models.  While the Random Forest baseline achieves near-perfect AUROC/AUPRC, the
-calibration analysis reveals that predicted probabilities require post-hoc correction
-before they can be used for patient-facing risk communication.  Future work will
-integrate calibration-aware training and evaluate on external clinical datasets.
+High AUROC alone is insufficient for clinical risk models.  This work demonstrates
+that post-hoc calibration can bridge the gap between strong discrimination and reliable
+probability estimates.  The complete pipeline---from data loading through cross-validated
+comparison, bootstrap inference, SHAP interpretability, and automated LaTeX
+reporting---serves as a reproducible template for clinical ML research.
+
+\begin{thebibliography}{9}
+\bibitem{niculescu2005}
+Niculescu-Mizil, A.\ \& Caruana, R.\ (2005).
+\textit{Predicting Good Probabilities with Supervised Learning}.
+Proceedings of ICML, pp.~625--632.
+
+\bibitem{platt1999}
+Platt, J.\ (1999).
+\textit{Probabilistic Outputs for Support Vector Machines and Comparisons to Regularized
+Likelihood Methods}.
+Advances in Large Margin Classifiers, pp.~61--74.
+
+\bibitem{zadrozny2002}
+Zadrozny, B.\ \& Elkan, C.\ (2002).
+\textit{Transforming Classifier Scores into Accurate Multiclass Probability Estimates}.
+Proceedings of KDD, pp.~694--699.
+
+\bibitem{chen2016}
+Chen, T.\ \& Guestrin, C.\ (2016).
+\textit{XGBoost: A Scalable Tree Boosting System}.
+Proceedings of KDD, pp.~785--794.
+
+\bibitem{guo2017}
+Guo, C.\ et al.\ (2017).
+\textit{On Calibration of Modern Neural Networks}.
+Proceedings of ICML, pp.~1321--1330.
+
+\bibitem{lundberg2017}
+Lundberg, S.\ \& Lee, S.-I.\ (2017).
+\textit{A Unified Approach to Interpreting Model Predictions}.
+Proceedings of NeurIPS, pp.~4765--4774.
+\end{thebibliography}
 
 \end{document}

@@ -1,7 +1,11 @@
 %% Auto-generated -- do not edit by hand
-\begin{tabular}{l r}
+\begin{tabular}{l c c c}
 \hline
-Metric & Value \\ \hline
-AUROC & 0.9987 \\
-AUPRC & 0.9992 \\ \hline
+Model & AUROC [95\% CI] & AUPRC [95\% CI] & Brier \\ \hline
+LogReg & 0.9940 [0.982, 1.000] & 0.9964 [0.989, 1.000] & 0.0248 \\
+RF & 0.9987 [0.995, 1.000] & 0.9992 [0.997, 1.000] & 0.0199 \\
+RF+Isotonic & 0.9977 [0.992, 1.000] & 0.9985 [0.995, 1.000] & 0.0197 \\
+RF+Platt & 0.9980 [0.993, 1.000] & 0.9989 [0.996, 1.000] & 0.0192 \\
+XGBoost & 1.0000 [1.000, 1.000] & 1.0000 [1.000, 1.000] & 0.0058 \\
+\hline
 \end{tabular}

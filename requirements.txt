@@ -5,3 +5,5 @@ matplotlib
 pyyaml
 datasets>=2.14.0
 joblib
+xgboost
+shap

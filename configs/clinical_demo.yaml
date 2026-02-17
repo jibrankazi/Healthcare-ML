@@ -6,9 +6,12 @@ data:
   target_column: "target"
 
 model:
-  type: random_forest
   n_estimators: 300
   max_depth: null
+
+cv:
+  n_folds: 5
+  n_bootstrap: 1000
 
 outputs:
   run_dir: runs/clinical_demo
