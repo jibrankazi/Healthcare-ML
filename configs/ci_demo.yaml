@@ -1,0 +1,15 @@
+seed: 42
+data:
+  hf_dataset_id: "none"
+  target_column: "target"
+model:
+  n_estimators: 10
+  max_depth: 3
+cv:
+  n_folds: 2
+  n_bootstrap: 30
+outputs:
+  run_dir: runs/ci_demo
+  results_json: runs/ci_demo/results.json
+  latex_table: paper/ci_results.tex
+  fig_dir: paper/ci_figures
