@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+import sys
+import types
 
 from hchealth.data import load_tabular
 
@@ -34,11 +37,27 @@ def test_load_tabular_deterministic():
     assert np.array_equal(a[0].values, b[0].values), "Same seed should give same split"
 
 
-def test_fallback_on_bad_hf_id():
-    """An invalid HF dataset ID should fall back to breast cancer."""
-    X_train, X_test, y_train, y_test = load_tabular(hf_id="nonexistent/fake_dataset_999")
-    total = len(y_train) + len(y_test)
-    assert total == 569
+def test_external_source_failure_does_not_silently_switch_dataset(monkeypatch):
+    """A failing HF request must never be presented as a different dataset."""
+    def unavailable(*args, **kwargs):
+        raise ConnectionError("Source unavailable")
+
+    monkeypatch.setitem(sys.modules, "datasets", types.SimpleNamespace(load_dataset=unavailable))
+    with pytest.raises(RuntimeError, match="refusing to substitute"):
+        load_tabular(hf_id="nonexistent/fake_dataset_999")
+
+
+def test_missing_requested_target_is_rejected(monkeypatch):
+    """HF schema mismatches must be errors, not guessed target labels."""
+    import pandas as pd
+
+    class ExternalDataset:
+        def to_pandas(self):
+            return pd.DataFrame({"feature": [1, 2, 3, 4], "wrong_target": [0, 1, 0, 1]})
+
+    monkeypatch.setitem(sys.modules, "datasets", types.SimpleNamespace(load_dataset=lambda *args, **kwargs: ExternalDataset()))
+    with pytest.raises(ValueError, match="Target 'target' absent"):
+        load_tabular(hf_id="org/dataset", target_column="target")
 
 
 def test_build_models():

@@ -181,28 +181,38 @@ def main():
     clf = best_model.named_steps["clf"]
     X_test_scaled = scaler.transform(X_test)
 
-    # Use TreeExplainer for tree models, KernelExplainer otherwise
+    # Explain the requested positive class in current and older SHAP versions.
+    # Modern SHAP may return (rows, features, 2), not a two-item list.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        if hasattr(clf, "estimators_") or hasattr(clf, "get_booster"):
-            # Tree-based model
+        if hasattr(clf, "coef_"):
+            # Logistic regression: analytical SHAP is faster and avoids the
+            # expensive, version-dependent KernelExplainer classifier output.
+            train_background = scaler.transform(X_train)
+            explainer = shap.LinearExplainer(clf, train_background)
+            shap_values = explainer.shap_values(X_test_scaled)
+        elif hasattr(clf, "estimators_") or hasattr(clf, "get_booster"):
             explainer = shap.TreeExplainer(clf)
             shap_values = explainer.shap_values(X_test_scaled)
-            # For binary classification, TreeExplainer may return list
-            if isinstance(shap_values, list):
-                shap_values = shap_values[1]  # class 1
         elif hasattr(clf, "calibrated_classifiers_"):
-            # CalibratedClassifierCV — explain the base estimator
             base = clf.calibrated_classifiers_[0].estimator
             explainer = shap.TreeExplainer(base)
             shap_values = explainer.shap_values(X_test_scaled)
-            if isinstance(shap_values, list):
-                shap_values = shap_values[1]
         else:
-            # Fallback: KernelExplainer (slower but universal)
             bg = shap.sample(X_test_scaled, min(50, len(X_test_scaled)))
             explainer = shap.KernelExplainer(clf.predict_proba, bg)
-            shap_values = explainer.shap_values(X_test_scaled)[1]
+            shap_values = explainer.shap_values(X_test_scaled)
+
+    if isinstance(shap_values, list):
+        shap_values = shap_values[1] if len(shap_values) == 2 else shap_values[0]
+    shap_values = np.asarray(shap_values)
+    if shap_values.ndim == 3 and shap_values.shape[-1] == 2:
+        shap_values = shap_values[:, :, 1]
+    if shap_values.shape != X_test_scaled.shape:
+        raise ValueError(
+            f"Unexpected SHAP shape {shap_values.shape}; "
+            f"expected heldout rows and features {X_test_scaled.shape}"
+        )
 
     fig, ax = plt.subplots(figsize=(8, 6))
     shap.summary_plot(
