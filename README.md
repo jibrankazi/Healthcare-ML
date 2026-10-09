@@ -20,7 +20,7 @@ Stages executed by `hchealth.run_pipeline`:
 4. Save ROC, PR, calibration and SHAP plots.
 5. Export the comparison table as LaTeX.
 
-The [GitHub Actions lifecycle workflow](https://github.com/jibrankazi/Healthcare-ML/actions/workflows/tests.yml) now attempts the entire sequence, verifies the results and required output files, and uploads them. **An attempted CI run should not be described as passing unless GitHub Actions reports success.**
+The [October 9 verified end-to-end execution](https://github.com/jibrankazi/Healthcare-ML/actions/runs/37940182428) **passed** all four stages (train, held-out evaluation, figures including SHAP, and LaTeX) on the real sklearn-distributed Wisconsin Breast Cancer dataset. Its GitHub Actions workflow validated data shape, split, five model results and required files, then uploaded the **wisconsin-breast-cancer-complete-research-lifecycle** artifact. This supports the configured *research demonstration*, not hospital integration or clinical validity.
 
 The research-sized configuration `configs/clinical_demo.yaml` requests 5-fold cross-validation and 1,000 bootstrap resamples and takes longer. CI uses a deliberately smaller compute budget (2 folds, 30 bootstrap resamples), **not a substitute for evaluating the research configuration**.
 
