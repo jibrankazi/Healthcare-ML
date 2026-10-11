@@ -18,7 +18,8 @@ def load_tabular(hf_id="none", target_column="target"):
     if hf_id == "none":
         bunch = load_breast_cancer(as_frame=True)
         X = bunch.frame.drop(columns=["target"])
-        y = bunch.frame["target"]
+        # Original: 0=malignant, 1=benign; recode positive class as malignant.
+        y = (bunch.frame["target"] == 0).astype(int)
     else:
         try:
             from datasets import load_dataset
@@ -37,5 +38,7 @@ def load_tabular(hf_id="none", target_column="target"):
         X = df.drop(columns=[target_column])
         if X.empty or y.isna().any():
             raise ValueError("Requested dataset has no usable features or missing target")
+        if set(y.unique()) != {0, 1}:
+            raise ValueError("Requested dataset target must use binary 0/1 labels")
 
     return train_test_split(X, y, test_size=0.2, random_state=123, stratify=y)

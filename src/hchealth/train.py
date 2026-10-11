@@ -126,6 +126,11 @@ def main():
 
     # Save metadata
     meta = {
+        "data_source": ("sklearn Wisconsin Breast Cancer" if cfg["data"]["hf_dataset_id"] == "none" else cfg["data"]["hf_dataset_id"]),
+        "positive_label": 1,
+        "positive_outcome": ("malignant" if cfg["data"]["hf_dataset_id"] == "none" else "source-specific 1 (meaning unverified)"),
+        "n_positive_train": int(np.sum(np.asarray(y_train) == 1)),
+        "n_positive_test": int(np.sum(np.asarray(y_test) == 1)),
         "n_features": int(X_train.shape[1]),
         "n_train": int(len(y_train)),
         "n_test": int(len(y_test)),

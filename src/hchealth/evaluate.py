@@ -58,6 +58,11 @@ def bootstrap_metric(y_true, y_score, metric_fn, n_boot=1000, seed=42):
     return float(point), float(lo), float(hi)
 
 
+def choose_explanation_model(meta):
+    """Choose explained model by training CV, not holdout performance."""
+    return max(meta["models"], key=lambda n: meta["cv_results"][n]["cv_auroc_mean"])
+
+
 def main():
     ap = argparse.ArgumentParser(description="Evaluate trained clinical risk models")
     ap.add_argument("--config", required=True, help="Path to YAML config file")
@@ -85,6 +90,7 @@ def main():
     with open(out / "train_meta.json") as f:
         meta = json.load(f)
     model_names = meta["models"]
+    best_name = choose_explanation_model(meta)
 
     # --- Compute per-model metrics ---
     all_results = {}
@@ -115,6 +121,12 @@ def main():
 
     results_out = {
         "n_test": int(len(y_test)),
+        "data_source": meta["data_source"],
+        "positive_label": meta["positive_label"],
+        "positive_outcome": meta["positive_outcome"],
+        "n_positive_test": int(np.sum(y_test_np == 1)),
+        "shap_explained_model": best_name,
+        "explanation_model_selection": "training cross-validation AUROC only",
         "n_bootstrap": n_boot,
         "models": all_results,
     }
@@ -130,7 +142,7 @@ def main():
                 label=f"{name} (AUROC={auroc:.3f})")
     ax.plot([0, 1], [0, 1], "--", color="gray", linewidth=0.8)
     ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
+    ax.set_ylabel("True Positive Rate (class 1)")
     ax.set_title("ROC Curves — Model Comparison")
     ax.legend(loc="lower right", fontsize=8)
     ax.grid(True, alpha=0.3)
@@ -145,7 +157,7 @@ def main():
         ax.plot(rec, prec, color=COLORS.get(name, "gray"),
                 label=f"{name} (AUPRC={auprc:.3f})")
     ax.set_xlabel("Recall")
-    ax.set_ylabel("Precision")
+    ax.set_ylabel("Precision (class 1)")
     ax.set_title("Precision-Recall Curves — Model Comparison")
     ax.legend(loc="lower left", fontsize=8)
     ax.grid(True, alpha=0.3)
@@ -164,15 +176,14 @@ def main():
                 label=f"{name} (Brier={brier:.3f})")
     ax.plot([0, 1], [0, 1], "--", color="gray", linewidth=0.8)
     ax.set_xlabel("Mean Predicted Probability")
-    ax.set_ylabel("Fraction of Positives")
+    ax.set_ylabel("Fraction of class 1")
     ax.set_title("Calibration Curves — Model Comparison")
     ax.legend(loc="upper left", fontsize=8)
     ax.grid(True, alpha=0.3)
     fig.savefig(fig_dir / "calibration.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
-    # --- SHAP feature importance (best model by AUROC) ---
-    best_name = max(all_results, key=lambda k: all_results[k]["AUROC"])
+    # --- Explain the model pre-selected from training CV, not test AUROC ---
     print(f"\nGenerating SHAP analysis for best model: {best_name}")
     best_model = joblib.load(out / f"model_{best_name}.joblib")
 
@@ -220,7 +231,7 @@ def main():
         feature_names=list(X_test.columns),
         show=False, max_display=15,
     )
-    plt.title(f"SHAP Feature Importance — {best_name}", fontsize=11)
+    plt.title(f"SHAP Features (class 1: {meta['positive_outcome']}) — {best_name}", fontsize=11)
     plt.tight_layout()
     plt.savefig(fig_dir / "shap_summary.png", dpi=200, bbox_inches="tight")
     plt.close("all")

@@ -24,11 +24,20 @@ The [October 9 verified end-to-end execution](https://github.com/jibrankazi/Heal
 
 The research-sized configuration `configs/clinical_demo.yaml` requests 5-fold cross-validation and 1,000 bootstrap resamples and takes longer. CI uses a deliberately smaller compute budget (2 folds, 30 bootstrap resamples), **not a substitute for evaluating the research configuration**.
 
+## Positive outcome and holdout integrity
+
+The original scikit-learn Wisconsin Breast Cancer dataset encodes **0 = malignant and 1 = benign**. For this research classifier the loader explicitly recodes to **1 = malignant, 0 = benign** (212 malignant records; 357 benign records). The original measured features and rows are unchanged. Positive-class AUPRC, model probabilities, calibration and class-1 SHAP explanations now refer to malignant diagnoses.
+
+**Old execution artifacts generated before this correction used class 1 = benign.** They must not be interpreted as malignancy-risk measurements. Re-run the current pipeline and inspect its generated artifacts for the new outcome convention. This is historical diagnostic research data, not a clinical decision system.
+
+The model explained using SHAP is selected from *training-set cross-validation AUROC* rather than using held-out AUROC for model selection. The output metadata makes the positive-label meaning, source, class counts, and selection basis explicit.
+
 ## Dataset integrity
 
 - `hf_dataset_id: "none"` means the public Wisconsin Breast Cancer data included with scikit-learn; it is an explicit, real-data selection, not a randomly generated fixture.
 - When a Hugging Face dataset ID is supplied, retrieval **must succeed** and the specified target column **must exist**. An error will stop the pipeline instead of silently switching to the sklearn dataset.
-- Training and evaluation call the same loader and fixed split. CI checks the expected 569 observations and 30 input features.
+- Training and evaluation call the same loader and fixed split. CI checks 569 observations, 30 input features and 212 malignant positive labels.
+- External Hugging Face datasets must use binary 0/1 target labels; the meaning of an external label 1 remains source-specific and must be independently verified.
 - There are **no independently verified patient-level outcomes beyond the included research dataset**, no prospective clinical trial, and no validated medical decision support deployment.
 
 ## Outputs

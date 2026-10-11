@@ -84,3 +84,45 @@ def test_bootstrap_metric():
 
     assert 0.0 <= lo <= point <= hi <= 1.0
     assert hi - lo > 0, "CI should have non-zero width"
+
+
+def test_wisconsin_positive_class_means_malignant():
+    from sklearn.datasets import load_breast_cancer
+
+    source = load_breast_cancer(as_frame=True)
+    assert list(source.target_names) == ["malignant", "benign"]
+    X_train, X_test, y_train, y_test = load_tabular()
+    for X, y in ((X_train, y_train), (X_test, y_test)):
+        expected = (source.frame.loc[X.index, "target"] == 0).astype(int)
+        assert np.array_equal(y.to_numpy(), expected.to_numpy())
+    assert int(y_train.sum() + y_test.sum()) == 212
+
+
+def test_external_nonbinary_target_rejected(monkeypatch):
+    import pandas as pd
+
+    class ExternalDataset:
+        def to_pandas(self):
+            return pd.DataFrame({
+                "feature": [1, 2, 3, 4],
+                "target": ["benign", "malignant", "benign", "malignant"],
+            })
+
+    monkeypatch.setitem(sys.modules, "datasets", types.SimpleNamespace(
+        load_dataset=lambda *args, **kwargs: ExternalDataset()
+    ))
+    with pytest.raises(ValueError, match="binary 0/1"):
+        load_tabular(hf_id="org/string_label_data")
+
+
+def test_explanation_model_selected_from_training_cv():
+    from hchealth.evaluate import choose_explanation_model
+
+    meta = {
+        "models": ["LogReg", "RF"],
+        "cv_results": {
+            "LogReg": {"cv_auroc_mean": 0.96},
+            "RF": {"cv_auroc_mean": 0.93},
+        },
+    }
+    assert choose_explanation_model(meta) == "LogReg"
