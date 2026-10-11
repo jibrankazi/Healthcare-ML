@@ -1,11 +1,21 @@
-%% Auto-generated -- do not edit by hand
+% Verified GitHub Actions run 38164590942, October 11, 2026.
+% Real scikit-learn Wisconsin Breast Cancer records, positive class = malignant.
+% CI demo only: 2-fold training CV, 10 estimators, 30 bootstrap resamples.
+\begin{center}
+\small
 \begin{tabular}{l c c c}
-\hline
-Model & AUROC [95\% CI] & AUPRC [95\% CI] & Brier \\ \hline
-LogReg & 0.9940 [0.982, 1.000] & 0.9964 [0.989, 1.000] & 0.0248 \\
-RF & 0.9987 [0.995, 1.000] & 0.9992 [0.997, 1.000] & 0.0199 \\
-RF+Isotonic & 0.9977 [0.992, 1.000] & 0.9985 [0.995, 1.000] & 0.0197 \\
-RF+Platt & 0.9980 [0.993, 1.000] & 0.9989 [0.996, 1.000] & 0.0192 \\
-XGBoost & 1.0000 [1.000, 1.000] & 1.0000 [1.000, 1.000] & 0.0058 \\
-\hline
+\toprule
+Model & AUROC [95\% bootstrap CI] & AUPRC & Brier \\
+\midrule
+LogReg & 0.9874 [0.9534, 1.0000] & 0.9883 & 0.0289 \\
+RF & 0.9876 [0.9588, 0.9997] & 0.9848 & 0.0425 \\
+RF+Isotonic & 0.9879 [0.9544, 1.0000] & 0.9870 & 0.0417 \\
+RF+Platt & 0.9864 [0.9500, 1.0000] & 0.9870 & 0.0404 \\
+XGBoost & 0.9864 [0.9639, 0.9989] & 0.9827 & 0.0683 \\
+\bottomrule
 \end{tabular}
+\end{center}
+\noindent\small AUROC intervals use only 30 bootstrap samples and are unstable.
+AUPRC and Brier are held-out point estimates; all scores treat malignant
+as positive label 1. These are observed CI-demo values, not values from
+the unexecuted full research-sized configuration.\normalsize

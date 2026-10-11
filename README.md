@@ -20,7 +20,7 @@ Stages executed by `hchealth.run_pipeline`:
 4. Save ROC, PR, calibration and SHAP plots.
 5. Export the comparison table as LaTeX.
 
-The [October 9 verified end-to-end execution](https://github.com/jibrankazi/Healthcare-ML/actions/runs/37940182428) **passed** all four stages (train, held-out evaluation, figures including SHAP, and LaTeX) on the real sklearn-distributed Wisconsin Breast Cancer dataset. Its GitHub Actions workflow validated data shape, split, five model results and required files, then uploaded the **wisconsin-breast-cancer-complete-research-lifecycle** artifact. This supports the configured *research demonstration*, not hospital integration or clinical validity.
+The [October 11, 2026 corrected-target end-to-end execution](https://github.com/jibrankazi/Healthcare-ML/actions/runs/38164590942) **passed 12 tests** and all four stages (train, held-out evaluation, figures including SHAP, and LaTeX) on the real sklearn-distributed Wisconsin Breast Cancer dataset. Its GitHub Actions workflow validated data shape, split, five model results and required files, then uploaded the **wisconsin-breast-cancer-complete-research-lifecycle** artifact. This supports the configured *research demonstration*, not hospital integration or clinical validity.
 
 The research-sized configuration `configs/clinical_demo.yaml` requests 5-fold cross-validation and 1,000 bootstrap resamples and takes longer. CI uses a deliberately smaller compute budget (2 folds, 30 bootstrap resamples), **not a substitute for evaluating the research configuration**.
 
@@ -39,6 +39,22 @@ The model explained using SHAP is selected from *training-set cross-validation A
 - Training and evaluation call the same loader and fixed split. CI checks 569 observations, 30 input features and 212 malignant positive labels.
 - External Hugging Face datasets must use binary 0/1 target labels; the meaning of an external label 1 remains source-specific and must be independently verified.
 - There are **no independently verified patient-level outcomes beyond the included research dataset**, no prospective clinical trial, and no validated medical decision support deployment.
+
+## Observed corrected-target results (October 11, 2026)
+
+In the passing [GitHub Actions run](https://github.com/jibrankazi/Healthcare-ML/actions/runs/38164590942), the 114-record holdout contained 42 malignant diagnoses. The observed metrics under the **CI demo configuration only** (2-fold CV, 10 estimators, 30 bootstrap samples) were:
+
+| Model | Held-out AUROC | Held-out AUPRC | Brier |
+| --- | ---: | ---: | ---: |
+| Logistic Regression | 0.9874 | 0.9883 | 0.0289 |
+| Random Forest | 0.9876 | 0.9848 | 0.0425 |
+| RF + Isotonic | 0.9879 | 0.9870 | 0.0417 |
+| RF + Platt | 0.9864 | 0.9870 | 0.0404 |
+| XGBoost | 0.9864 | 0.9827 | 0.0683 |
+
+The training-CV-selected SHAP explanation model was Logistic Regression (2-fold training CV AUROC 0.9964). The score differences do not establish superiority or clinical value. The earlier October 9 workflow artifact used the original benign-positive label convention and has been superseded for malignancy-risk interpretation.
+
+The tracked `paper/main.pdf` and `paper/figures/` are **legacy binary artifacts not regenerated for the corrected outcome**. They must not be used as evidence of current results. The corrected `paper/main.tex` and `paper/results.tex` source documents describe verified CI output; current generated plots and LaTeX are in the October 11 workflow artifact. The larger five-fold / 300-tree research configuration remains unverified.
 
 ## Outputs
 
