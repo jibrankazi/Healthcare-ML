@@ -68,3 +68,16 @@ Check the specific CI run's uploaded artifacts rather than treating historical a
 ## Scope of the project
 
 The implementation uses scikit-learn, XGBoost, SHAP, matplotlib, and optional Hugging Face Datasets access. This is a public-data research demonstration; it should **not** be used to make patient care decisions. The repository does not demonstrate a connected hospital system, externally validated clinical performance, or a regulatory authorization.
+
+
+## External-cohort diagnostic validation gate (October 2026)
+
+The new [external validation protocol](EXTERNAL_VALIDATION.md) and executable
+`hchealth.external_validate` evaluate a **separate** 30-feature breast-cancer
+cohort without refitting the model, reject exact reused Wisconsin source
+observations, and check source metadata, outcomes, schema and patient IDs.
+[GitHub Actions passed the new regression tests](https://github.com/jibrankazi/Healthcare-ML/actions/runs/38279855171).
+
+**Independent clinical verification is still outstanding:** no new external
+patient cohort was introduced by these tests, and source/site independence
+requires clinical-custodian review. Research results are not approved for care.
