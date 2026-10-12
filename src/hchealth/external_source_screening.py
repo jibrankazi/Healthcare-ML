@@ -62,7 +62,7 @@ def screen(session=None):
             if body.get("status") != 200 or not isinstance(body.get("data"), dict):
                 raise ValueError("UCI metadata endpoint did not return confirmed dataset")
             result = assess_dataset(dataset_id, body["data"])
-        except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
+        except (requests.RequestException, ConnectionError, ValueError, KeyError, TypeError) as exc:
             result = {
                 "uci_id": dataset_id,
                 "uci_source_url": f"https://archive.ics.uci.edu/dataset/{dataset_id}",
