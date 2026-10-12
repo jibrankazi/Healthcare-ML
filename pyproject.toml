@@ -20,6 +20,7 @@ dependencies = [
     "joblib",
     "xgboost",
     "shap",
+    "requests",
 ]
 
 [project.optional-dependencies]
