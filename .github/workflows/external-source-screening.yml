@@ -1,0 +1,44 @@
+name: Screen independent public clinical cohort suitability
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/hchealth/external_source_screening.py"
+      - "tests/test_external_source_screening.py"
+      - ".github/workflows/external-source-screening.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  uci-public-clinical-suitability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest -q tests/test_external_source_screening.py tests/test_external_validate.py
+      - run: python -m hchealth.external_source_screening
+      - name: Assert public clinical candidates cannot be mislabeled independent WDBC validations
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("runs/uci_external_cohort_suitability.json").read_text())
+          assert r["external_diagnostic_model_validation_completed"] is False
+          assert r["no_synthetic_or_rehosted_patient_data_used"]
+          assert r["no_model_predictions_on_incompatible_cohorts"]
+          assert len(r["candidates"])==3
+          assert all(x["may_evaluate_trained_wdbc_model_on_this_dataset"] is False for x in r["candidates"])
+          print("Actual UCI metadata verified:",r["official_metadata_verified_count"],"/3")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: actual-uci-external-cohort-metadata-and-diagnostic-compatibility-gate
+          path: runs/uci_external_cohort_suitability.json
+          if-no-files-found: error
