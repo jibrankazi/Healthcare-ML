@@ -1,5 +1,10 @@
 # Healthcare-ML — reproducible public research dataset
 
+## Train → containerized research inference → monitoring
+
+[**Run the local FastAPI container and inspect its training-to-serving architecture**](docs/RESEARCH_SERVING.md). The container reproduces five original-Wisconsin research model fits from the public dataset, chooses a model on training cross-validation only, serves strict 30-feature original-schema research inference, and exposes aggregate score/envelope monitoring without saving raw records. The [train/HTTP/Docker CI workflow](https://github.com/jibrankazi/Healthcare-ML/actions/workflows/inference-container.yml) checks research source identity, real heldout inference, Docker runtime and model-serving counters. **Not** a deployed online service or clinically validated patient-risk/diagnostic system.
+
+
 Python pipeline for binary classification using **the real, publicly distributed scikit-learn Wisconsin Breast Cancer dataset** (569 records; 30 measured features). These are historical diagnostic feature measurements, **not live electronic health records, a clinical API, or evidence of clinical deployment**.
 
 The code implements five algorithms, stratified train/test splitting, cross-validation, held-out AUROC/AUPRC and Brier scores, bootstrap intervals, plots including SHAP interpretation, and a LaTeX results table. The validity of any specific metric is established by a completed execution and its output artifact, **not by an example metric printed in this README**.
