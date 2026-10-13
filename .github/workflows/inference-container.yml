@@ -1,4 +1,6 @@
 name: Wisconsin model training-to-serving container and monitoring
+env:
+  PYTHONPATH: src
 on:
   push:
     branches: [main]
