@@ -124,6 +124,21 @@ def main():
         pipeline.fit(X_train, y_train)
         joblib.dump(pipeline, out / f"model_{name}.joblib")
 
+    # Reference envelope for *monitoring a local research demo only*. Fit strictly
+    # on the training split, never on the untouched heldout evaluation data.
+    reference = {
+        "source": "Wisconsin Breast Cancer, stratified training split only",
+        "n_training_rows": int(len(X_train)),
+        "features": list(X_train.columns),
+        "lower_training_percentile_01": {
+            col: float(np.quantile(X_train[col], .01)) for col in X_train.columns},
+        "upper_training_percentile_99": {
+            col: float(np.quantile(X_train[col], .99)) for col in X_train.columns},
+        "semantics": "Range alerts are input-shift proxies, not clinical drift validation",
+    }
+    (out / "monitoring_reference.json").write_text(
+        json.dumps(reference, indent=2) + "\n", encoding="utf-8")
+
     # Save metadata
     meta = {
         "data_source": ("sklearn Wisconsin Breast Cancer" if cfg["data"]["hf_dataset_id"] == "none" else cfg["data"]["hf_dataset_id"]),
