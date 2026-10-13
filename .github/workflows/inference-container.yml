@@ -91,10 +91,28 @@ jobs:
           assert metrics["monitoring_excludes_raw_records"] is True
           print("TRUE CONTAINER POST /predict + GET /metrics VERIFIED",data["model"])
           PY
+          mkdir -p docs/screenshots
+          BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)
+          if [ -n "$BROWSER" ]; then
+            "$BROWSER" --headless=new --no-sandbox --disable-dev-shm-usage \
+              --window-size=1440,1050 \
+              --screenshot="$PWD/docs/screenshots/real-wisconsin-fastapi-docs.png" \
+              http://127.0.0.1:8002/docs || true
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("docs/screenshots/real-wisconsin-fastapi-docs.png")
+          if p.is_file():
+              assert p.read_bytes()[:8] == bytes.fromhex("89504e470d0a1a0a")
+              print("Actual running-Docker browser screenshot:",p.stat().st_size)
+          else:
+              print("System Chromium absent; no screenshot generated")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: genuine-wisconsin-train-serve-monitor-contract
           path: |
             runs/ci_demo/train_meta.json
             runs/ci_demo/monitoring_reference.json
+            docs/screenshots/*.png
           if-no-files-found: error
