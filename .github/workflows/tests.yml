@@ -49,12 +49,51 @@ jobs:
               assert (Path("paper/ci_figures") / name).is_file()
           print("Observed Wisconsin Breast Cancer data: training, holdout evaluation, plots, and LaTeX outputs validated")
           PY
+      - name: Score actual untouched public Wisconsin holdout using saved model
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from hchealth.data import load_tabular
+          _, heldout, _, _ = load_tabular()
+          path = Path("runs/ci_demo/heldout_unlabeled.csv")
+          path.parent.mkdir(parents=True, exist_ok=True)
+          heldout.to_csv(path, index=False)
+          print(f"Original public-source holdout features for inference: {len(heldout)}")
+          PY
+          python -m hchealth.infer --config configs/ci_demo.yaml --input-csv runs/ci_demo/heldout_unlabeled.csv --output runs/ci_demo/heldout_inference.json
+      - name: Independently recheck serialized model's heldout probabilities and source labeling
+        run: |
+          python - <<'PY'
+          import json
+          import joblib
+          import numpy as np
+          import pandas as pd
+          from pathlib import Path
+          p = Path("runs/ci_demo")
+          meta = json.loads((p / "train_meta.json").read_text())
+          saved = json.loads((p / "heldout_inference.json").read_text())
+          best = max(meta["models"], key=lambda name: meta["cv_results"][name]["cv_auroc_mean"])
+          model = joblib.load(p / f"model_{best}.joblib")
+          data = pd.read_csv(p / "heldout_unlabeled.csv")
+          expected = model.predict_proba(data)[:, list(model.classes_).index(1)]
+          observed = np.asarray(saved["probabilities_malignant"])
+          assert saved["selected_model"] == best
+          assert saved["positive_outcome"] == "malignant" and saved["positive_label"] == 1
+          assert saved["n_rows"] == meta["n_test"] == len(data)
+          assert saved["n_features"] == meta["n_features"] == data.shape[1] == 30
+          assert np.allclose(observed, expected, rtol=0, atol=1e-10)
+          assert not saved["clinical_decision_support"]
+          assert not saved["external_clinical_validation_established"]
+          print(f"Independent saved-model inference verified for {len(data)} heldout original measurements")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: wisconsin-breast-cancer-complete-research-lifecycle
           path: |
             runs/ci_demo/train_meta.json
             runs/ci_demo/results.json
+            runs/ci_demo/heldout_unlabeled.csv
+            runs/ci_demo/heldout_inference.json
             paper/ci_results.tex
             paper/ci_figures/*.png
           if-no-files-found: error
