@@ -4,6 +4,50 @@ Python pipeline for binary classification using **the real, publicly distributed
 
 The code implements five algorithms, stratified train/test splitting, cross-validation, held-out AUROC/AUPRC and Brier scores, bootstrap intervals, plots including SHAP interpretation, and a LaTeX results table. The validity of any specific metric is established by a completed execution and its output artifact, **not by an example metric printed in this README**.
 
+## Interview-ready engineering enhancement: saved-model inference
+
+A new bounded research-only `hchealth.infer` CLI scores a **feature-only CSV**
+using the model selected from training cross-validation rather than selecting
+whichever model looks best on the held-out test. It reloads the serialized local
+model, verifies the exact original 30-column feature schema and order, refuses
+invalid numeric values or wrongly labeled model metadata, and writes positive
+class probabilities together with source, model and input SHA-256 identifiers.
+
+After you run the existing training pipeline, prepare a demonstration using
+**original public Wisconsin records**, never real patient records:
+
+```bash
+python -m hchealth.run_pipeline --config configs/ci_demo.yaml
+python - <<'PY'
+from pathlib import Path
+from hchealth.data import load_tabular
+_, X_test, _, _ = load_tabular()
+Path("runs/ci_demo").mkdir(parents=True, exist_ok=True)
+X_test.to_csv("runs/ci_demo/heldout_unlabeled.csv", index=False)
+PY
+python -m hchealth.infer --config configs/ci_demo.yaml \
+  --input-csv runs/ci_demo/heldout_unlabeled.csv \
+  --output runs/ci_demo/heldout_inference.json
+```
+
+This exercise answers common engineering interview questions: *Which fitted
+model is used for inference? Was the heldout test used to pick it? How is the
+input schema enforced? How do you reproduce an output? Why is the positive
+class malignant rather than benign?* The CI workflow independently reloads
+the selected classifier and compares every computed probability on the heldout
+public measurements. The unit tests explicitly reject incorrectly ordered,
+missing, nonnumeric, infinite or extra columns, and inconsistent class-label
+metadata.
+
+**Security and validity:** Load only trusted locally produced model files;
+`joblib` is pickle-based and must not deserialize untrusted uploads. The
+trained data are historical public research records. These results **do not**
+constitute a patient risk score, diagnosis, externally validated clinical
+performance or a production medical device. The CLI is a reproducible offline
+research inference boundary, not an authenticated HTTP service.
+
+---
+
 ## End-to-end lifecycle
 
 ```bash
