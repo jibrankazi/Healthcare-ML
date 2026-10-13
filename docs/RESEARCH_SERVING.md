@@ -103,11 +103,14 @@ run artifacts.
 The full model-quality lifecycle is checked independently by
 [the original train/heldout/SHAP/LaTeX workflow](https://github.com/jibrankazi/Healthcare-ML/actions/workflows/tests.yml).
 
-The browser-friendly **FastAPI Swagger screenshot** for this service can
-be produced from http://localhost:8002/docs after launching the container.
-No picture is described as a verified public deployment until an actual
-browser capture is saved. Screenshots of the local API are demonstration
-assets, not accuracy or clinical validation evidence.
+The [container workflow](https://github.com/jibrankazi/Healthcare-ML/actions/workflows/inference-container.yml)
+also opens the **actual running FastAPI Swagger UI** at
+`http://127.0.0.1:8002/docs` in headless Chrome when a browser is
+available, and uploads `docs/screenshots/real-wisconsin-fastapi-docs.png`
+in the `genuine-wisconsin-train-serve-monitor-contract` Actions artifact.
+This is a real local browser capture, **not a publicly deployed clinical
+dashboard**. The screenshot is a UI demonstration, not model evaluation
+evidence.
 
 ## Local development
 
