@@ -24,7 +24,7 @@ def research_paths(tmp_path):
     X = source.data
     y = (source.target == 0).astype(int)
     model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=250))
-    model.fit(X.iloc[:120], y.iloc[:120])
+    model.fit(X.iloc[::4], y.iloc[::4])
     run_dir = tmp_path / "trained"
     run_dir.mkdir()
     joblib.dump(model, run_dir / "model_LogReg.joblib")
