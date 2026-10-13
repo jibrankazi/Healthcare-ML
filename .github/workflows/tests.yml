@@ -17,7 +17,9 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install pipeline and test dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install -e ".[dev]"
+          pip install fastapi "uvicorn>=0.30,<1" "httpx>=0.27,<1"
       - name: Validate data-source contracts and mathematical tests
         run: python -m pytest -q
       - name: Execute full train, held-out evaluation, figure and LaTeX lifecycle
