@@ -78,7 +78,8 @@ def test_refuses_unseen_or_invalid_feature_schema(research_paths, corruption):
     elif corruption == "infinity":
         df.iloc[0, 0] = np.inf
     elif corruption == "nonnumeric":
-        df.iloc[0, 0] = "not-a-measurement"
+        df[df.columns[0]] = df[df.columns[0]].astype(object)
+        df.at[df.index[0], df.columns[0]] = "not-a-measurement"
     df.to_csv(csv, index=False)
     with pytest.raises(ValueError):
         run_inference(config, csv, output)
